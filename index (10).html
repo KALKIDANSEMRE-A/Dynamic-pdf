@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Travel Report Form</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font-family: Arial, sans-serif;
+        background: #f5f7fa;
+        margin: 0;
+        padding: 20px;
+        font-size: 14px;
+      }
+      h1 {
+        text-align: center;
+        color: navy;
+        margin-bottom: 10px;
+      }
+      .form-container {
+        max-width: 900px;
+        margin: auto;
+        background: white;
+        padding: 20px;
+        border: 2px solid navy;
+        border-radius: 8px;
+      }
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 2px solid navy;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+      }
+      .header img {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border: 1px solid navy;
+      }
+      .header-center {
+        text-align: center;
+        flex: 1;
+      }
+      .section {
+        margin-bottom: 20px;
+      }
+      .section h2 {
+        color: navy;
+        border-bottom: 1px solid navy;
+        font-size: 16px;
+      }
+      label {
+        display: block;
+        margin-top: 10px;
+        font-weight: bold;
+      }
+      input[type="text"],
+      input[type="email"],
+      textarea,
+      select,
+      input[type="date"] {
+        width: 100%;
+        padding: 5px;
+        margin-top: 5px;
+        font-size: 12px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      input[type="radio"],
+      input[type="checkbox"] {
+        margin-right: 5px;
+      }
+      .images-preview {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+      }
+      .images-preview img {
+        max-width: 80px;
+        height: auto;
+        border: 1px solid #ccc;
+      }
+      .signature-pad {
+        border: 1px solid #000;
+        width: 100%;
+        max-width: 200px;
+        height: 100px;
+        background: #f9f9f9;
+      }
+      button {
+        padding: 10px;
+        margin-top: 10px;
+        background: navy;
+        color: white;
+        border: none;
+        cursor: pointer;
+        border-radius: 4px;
+      }
+      button:hover {
+        background: #000066;
+      }
+      .image-upload-label {
+        display: inline-block;
+        background: #f0f8ff;
+        border: 2px solid navy;
+        padding: 10px;
+        cursor: pointer;
+        border-radius: 4px;
+      }
+      .image-upload-label:hover {
+        background: #d0e8ff;
+      }
+      @media (max-width: 600px) {
+        .header {
+          flex-direction: column;
+          align-items: center;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="form-container" id="formContainer">
+      <div class="header">
+        <div class="header-center">
+          <h1>Travel Report</h1>
+          <label for="placeVisited">Place Visited</label>
+          <select id="placeVisited" required aria-required="true">
+            <option value="">Select...</option>
+            <option>New York, USA</option>
+            <option>London, UK</option>
+            <option>Tokyo, Japan</option>
+            <option>Paris, France</option>
+            <option>Sydney, Australia</option>
+            <option>Rio de Janeiro, Brazil</option>
+            <option>Cape Town, South Africa</option>
+            <option>Mumbai, India</option>
+            <option>Beijing, China</option>
+            <option>Toronto, Canada</option>
+            <option value="Unknown">Unknown Location</option>
+          </select>
+          <label for="address">Address</label>
+          <input type="text" id="address" required aria-required="true" />
+        </div>
+        <div>
+          <img
+            id="headerPhoto"
+            src="https://via.placeholder.com/80"
+            alt="User Photo"
+          />
+        </div>
+      </div>
+
+      <!-- Personal Information -->
+      <div class="section">
+        <h2>Personal Information</h2>
+        <label for="fullName">Full Name</label>
+        <input type="text" id="fullName" required aria-required="true" />
+        <label for="email">Email</label>
+        <input type="email" id="email" required aria-required="true" />
+      </div>
+
+      <!-- Travel Details -->
+      <div class="section">
+        <h2>Travel Details</h2>
+        <label for="date">Date of Visit</label>
+        <input
+          type="date"
+          id="date"
+          required
+          aria-required="true"
+          value="2025-06-10"
+        />
+        <label for="imageUpload" class="image-upload-label">
+          Upload Images (Max 5)
+        </label>
+        <input
+          type="file"
+          id="imageUpload"
+          accept="image/*"
+          multiple
+          style="display: none"
+        />
+        <div id="imagePreview" class="images-preview"></div>
+      </div>
+
+      <!-- Signature -->
+      <div class="section">
+        <h2>Signature</h2>
+        <canvas id="signature" class="signature-pad"></canvas>
+        <button id="clearSignature">Clear Signature</button>
+      </div>
+
+      <!-- Export Button -->
+      <button id="exportButton">Export to PDF</button>
+    </div>
+
+    <script>
+      // ================== Constants & DOM Shortcuts =====================
+      const placeSelect = document.getElementById("placeVisited");
+      const addressInput = document.getElementById("address");
+      const imageUpload = document.getElementById("imageUpload");
+      const imagePreviewContainer = document.getElementById("imagePreview");
+      const headerPhoto = document.getElementById("headerPhoto");
+      const emailInput = document.getElementById("email");
+      const signaturePad = document.getElementById("signature");
+      const exportButton = document.getElementById("exportButton");
+      const clearSignature = document.getElementById("clearSignature");
+
+      // ================== Signature Pad Initialization =====================
+      const ctx = signaturePad.getContext("2d");
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#000";
+
+      // ================== Image Upload & Preview =====================
+      imageUpload.addEventListener("change", () => {
+        const files = Array.from(imageUpload.files).slice(0, 5);
+        imagePreviewContainer.innerHTML = "";
+        if (files.length > 0) {
+          files.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const img = document.createElement("img");
+              img.src = e.target.result;
+              img.alt = `Uploaded image ${index + 1}`;
+              img.style.maxWidth = "80px";
+              img.style.margin = "5px";
+              imagePreviewContainer.appendChild(img);
+              if (index === 0) headerPhoto.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+          });
+        }
+      });
+
+      // ================== Signature Pad =====================
+      let isDrawing = false;
+      signaturePad.addEventListener("mousedown", startDraw);
+      signaturePad.addEventListener("mouseup", endDraw);
+      signaturePad.addEventListener("mousemove", draw);
+      signaturePad.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        startDraw(e.touches[0]);
+      });
+      signaturePad.addEventListener("touchend", endDraw);
+      signaturePad.addEventListener("touchmove", (e) => {
+        e.preventDefault();
+        draw(e.touches[0]);
+      });
+
+      function startDraw(e) {
+        isDrawing = true;
+        const rect = signaturePad.getBoundingClientRect();
+        ctx.beginPath();
+        ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+      }
+
+      function endDraw() {
+        isDrawing = false;
+      }
+
+      function draw(e) {
+        if (!isDrawing) return;
+        const rect = signaturePad.getBoundingClientRect();
+        ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+        ctx.stroke();
+      }
+
+      clearSignature.addEventListener("click", () => {
+        ctx.clearRect(0, 0, signaturePad.width, signaturePad.height);
+      });
+
+      // ================== Email Validation =====================
+      emailInput.addEventListener("input", () => {
+        const email = emailInput.value;
+        const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        emailInput.style.borderColor = valid ? "green" : "red";
+        emailInput.setAttribute("aria-invalid", !valid);
+      });
+
+      // ================== PDF Export =====================
+      function exportToPDF() {
+        try {
+          // Simplified validation
+          let valid = true;
+          const requiredInputs = document.querySelectorAll("[required]");
+          requiredInputs.forEach((input) => {
+            if (!input.value) {
+              input.style.borderColor = "red";
+              input.setAttribute("aria-invalid", "true");
+              valid = false;
+            } else {
+              input.style.borderColor = "";
+              input.setAttribute("aria-invalid", "false");
+            }
+          });
+
+          if (imageUpload.files.length === 0) {
+            alert("Please upload at least one image.");
+            valid = false;
+          }
+
+          // Check if signature canvas has any content
+          const signatureData = ctx.getImageData(
+            0,
+            0,
+            signaturePad.width,
+            signaturePad.height
+          ).data;
+          const signatureNotEmpty = !signatureData.every((byte) => byte === 0);
+          if (!signatureNotEmpty) {
+            alert("Please provide a signature.");
+            valid = false;
+          }
+
+          if (!valid) {
+            console.warn("Validation failed. PDF export aborted.");
+            return;
+          }
+
+          // Prepare the element for PDF export
+          const element = document.getElementById("formContainer");
+
+          // Convert canvas to an image to ensure it renders in the PDF
+          const signatureImg = signaturePad.toDataURL("image/png");
+          const tempImg = document.createElement("img");
+          tempImg.src = signatureImg;
+          tempImg.style.width = "200px";
+          tempImg.style.height = "100px";
+          tempImg.alt = "User signature";
+          signaturePad.parentNode.replaceChild(tempImg, signaturePad);
+
+          const opt = {
+            margin: 0.5,
+            filename: "TravelReport.pdf",
+            image: { type: "jpeg", quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
+            pagebreak: { mode: ["avoid-all", "css"] },
+          };
+
+          html2pdf()
+            .set(opt)
+            .from(element)
+            .save()
+            .then(() => {
+              console.log("PDF export successful");
+              // Restore the canvas after export
+              tempImg.parentNode.replaceChild(signaturePad, tempImg);
+            })
+            .catch((error) => {
+              console.error("PDF export failed:", error);
+              alert("Failed to export PDF. Check console for details.");
+              // Restore the canvas even if export fails
+              tempImg.parentNode.replaceChild(signaturePad, tempImg);
+            });
+        } catch (error) {
+          console.error("Error in exportToPDF:", error);
+          alert(
+            "An error occurred while exporting. Check console for details."
+          );
+        }
+      }
+
+      exportButton.addEventListener("click", exportToPDF);
+    </script>
+  </body>
+</html>
